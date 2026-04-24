@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mazais Angļu Valodas Piedzīvojums — design system
+   All colors in HSL. Warm, playful, child-friendly palette.
+*/
+
+@layer base {
+  :root {
+    --background: 36 100% 97%;            /* cream #FFF8F0 */
+    --foreground: 20 30% 18%;             /* warm dark brown */
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 30% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 30% 18%;
+
+    --primary: 14 100% 67%;               /* coral/orange #FF7A59 */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 14 100% 78%;
+
+    --secondary: 199 92% 64%;             /* sky blue #4FC3F7 */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 43 100% 70%;                /* sunny yellow #FFD166 */
+    --accent-foreground: 20 40% 20%;
+
+    --success: 137 47% 61%;               /* mint #6BCB77 */
+    --success-foreground: 0 0% 100%;
+
+    --muted: 36 50% 93%;
+    --muted-foreground: 25 15% 45%;
+
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 40% 88%;
+    --input: 30 40% 88%;
+    --ring: 14 100% 67%;
+
+    --radius: 1.25rem;
+
+    --shadow-soft: 0 8px 24px -8px hsl(14 70% 60% / 0.25);
+    --shadow-card: 0 4px 0 0 hsl(30 30% 80% / 0.6);
+    --gradient-warm: linear-gradient(135deg, hsl(14 100% 70%), hsl(43 100% 70%));
+    --gradient-sky: linear-gradient(135deg, hsl(199 92% 70%), hsl(220 95% 75%));
+    --gradient-bg: linear-gradient(180deg, hsl(36 100% 97%), hsl(36 100% 94%));
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 20 30% 10%;
+    --foreground: 36 100% 96%;
+    --card: 20 30% 14%;
+    --card-foreground: 36 100% 96%;
+    --popover: 20 30% 14%;
+    --popover-foreground: 36 100% 96%;
+    --primary: 14 100% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 199 80% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 43 95% 65%;
+    --accent-foreground: 20 40% 15%;
+    --success: 137 45% 55%;
+    --success-foreground: 0 0% 100%;
+    --muted: 20 20% 20%;
+    --muted-foreground: 36 30% 70%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 20% 22%;
+    --input: 20 20% 22%;
+    --ring: 14 100% 67%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    background-image: var(--gradient-bg);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .gradient-warm { background-image: var(--gradient-warm); }
+  .gradient-sky { background-image: var(--gradient-sky); }
+
+  /* Chunky button "press" effect */
+  .btn-chunky {
+    @apply relative transition-all duration-150 active:translate-y-1;
+    box-shadow: 0 4px 0 0 hsl(var(--primary) / 0.6);
+  }
+  .btn-chunky:active {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.6);
+  }
+}
