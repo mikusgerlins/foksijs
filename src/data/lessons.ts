@@ -91,7 +91,7 @@ export const UNITS: Unit[] = [
       { lv: "grāmata", en: "book", emoji: "📖" },
       { lv: "pildspalva", en: "pen", emoji: "🖊️" },
       { lv: "skolotājs", en: "teacher", emoji: "👩‍🏫" },
-      { lv: "sols", en: "desk", emoji: "🪑" },
+      { lv: "galds", en: "desk", emoji: "🟫" },
     ],
   },
   {
