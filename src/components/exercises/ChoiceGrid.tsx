@@ -24,11 +24,11 @@ export const ChoiceGrid = ({
         const isSelected = selected === opt;
         const isCorrect = opt === correctAnswer;
         let stateClass = "border-border bg-card hover:bg-muted hover:border-primary/50";
-        if (locked && isCorrect) stateClass = "border-success bg-success/15 text-success-foreground";
+        if (locked && isCorrect) stateClass = "border-success bg-success text-success-foreground shadow-lg ring-4 ring-success/40";
         else if (locked && isSelected && !isCorrect)
-          stateClass = "border-destructive bg-destructive/15 text-destructive-foreground";
+          stateClass = "border-destructive bg-destructive text-destructive-foreground shadow-lg ring-4 ring-destructive/40";
         else if (isSelected)
-          stateClass = "border-primary bg-primary/10 text-foreground ring-2 ring-primary/30 scale-[1.02]";
+          stateClass = "border-primary bg-primary text-primary-foreground ring-4 ring-primary/40 shadow-lg scale-[1.04]";
 
         return (
           <Button

@@ -63,10 +63,10 @@ export const Matching = ({ pairs, onComplete }: Props) => {
 
     return cn(
       "rounded-2xl border-2 px-4 py-4 text-base sm:text-lg font-bold transition-all min-h-[60px]",
-      isMatched && "bg-success/20 border-success text-success-foreground opacity-60 cursor-default",
+      isMatched && "bg-success border-success text-success-foreground opacity-70 cursor-default ring-2 ring-success/40",
       !isMatched && !isSelected && "bg-card border-border hover:border-primary/50",
-      isSelected && "bg-primary/15 border-primary scale-105",
-      isWrong && "bg-destructive/20 border-destructive animate-shake",
+      isSelected && "bg-primary text-primary-foreground border-primary ring-4 ring-primary/40 shadow-lg scale-105",
+      isWrong && "bg-destructive text-destructive-foreground border-destructive ring-4 ring-destructive/40 animate-shake",
     );
   };
 

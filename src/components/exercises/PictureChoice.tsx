@@ -16,9 +16,17 @@ export const PictureChoice = ({ options, onSelect, selected, correct, locked }: 
         const isSelected = selected?.en === opt.en;
         const isCorrect = opt.en === correct.en;
         let stateClass = "border-border bg-card hover:border-primary/50";
-        if (locked && isCorrect) stateClass = "border-success bg-success/15";
-        else if (locked && isSelected && !isCorrect)
-          stateClass = "border-destructive bg-destructive/15";
+        let labelClass = "text-muted-foreground";
+        if (locked && isCorrect) {
+          stateClass = "border-success bg-success ring-4 ring-success/40 shadow-lg scale-[1.03]";
+          labelClass = "text-success-foreground";
+        } else if (locked && isSelected && !isCorrect) {
+          stateClass = "border-destructive bg-destructive ring-4 ring-destructive/40 shadow-lg";
+          labelClass = "text-destructive-foreground";
+        } else if (isSelected) {
+          stateClass = "border-primary bg-primary ring-4 ring-primary/40 shadow-lg scale-[1.04]";
+          labelClass = "text-primary-foreground";
+        }
 
         return (
           <button
@@ -33,7 +41,7 @@ export const PictureChoice = ({ options, onSelect, selected, correct, locked }: 
             )}
           >
             <span className="text-5xl sm:text-6xl">{opt.emoji}</span>
-            <span className="text-sm font-semibold text-muted-foreground">{opt.lv}</span>
+            <span className={cn("text-sm font-semibold", labelClass)}>{opt.lv}</span>
           </button>
         );
       })}
