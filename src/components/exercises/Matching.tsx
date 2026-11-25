@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import type { Word } from "@/data/lessons";
 import { cn } from "@/lib/utils";
 
@@ -26,31 +26,29 @@ export const Matching = ({ pairs, onComplete }: Props) => {
   const [wrongFlash, setWrongFlash] = useState<{ lv: string; en: string } | null>(null);
   const [mistakes, setMistakes] = useState(0);
 
-  useEffect(() => {
-    if (selectedLv && selectedEn) {
-      const pair = pairs.find((p) => p.lv === selectedLv);
-      if (pair && pair.en === selectedEn) {
-        setMatched((prev) => {
-          const next = new Set(prev);
-          next.add(selectedLv);
-          if (next.size === pairs.length) {
-            setTimeout(() => onComplete(mistakes), 400);
-          }
-          return next;
-        });
+  const timer = useRef<number>();
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  function choose(lv: string | null, en: string | null) {
+    setSelectedLv(lv);
+    setSelectedEn(en);
+    if (!lv || !en) return;
+    if (pairs.some(pair => pair.lv === lv && pair.en === en)) {
+      const next = new Set(matched).add(lv);
+      setMatched(next);
+      setSelectedLv(null);
+      setSelectedEn(null);
+      if (next.size === pairs.length) onComplete(mistakes);
+    } else {
+      setWrongFlash({ lv, en });
+      setMistakes(m => m + 1);
+      timer.current = window.setTimeout(() => {
+        setWrongFlash(null);
         setSelectedLv(null);
         setSelectedEn(null);
-      } else {
-        setWrongFlash({ lv: selectedLv, en: selectedEn });
-        setMistakes((m) => m + 1);
-        setTimeout(() => {
-          setWrongFlash(null);
-          setSelectedLv(null);
-          setSelectedEn(null);
-        }, 600);
-      }
+      }, 600);
     }
-  }, [selectedLv, selectedEn, pairs, mistakes, onComplete]);
+  }
 
   const cellClass = (val: string, type: "lv" | "en") => {
     const isMatched =
@@ -77,8 +75,8 @@ export const Matching = ({ pairs, onComplete }: Props) => {
           <button
             key={lv}
             type="button"
-            disabled={matched.has(lv)}
-            onClick={() => setSelectedLv(lv)}
+            disabled={Boolean(wrongFlash) || matched.has(lv)}
+            onClick={() => choose(lv, selectedEn)}
             className={cellClass(lv, "lv")}
           >
             {lv}
@@ -92,8 +90,8 @@ export const Matching = ({ pairs, onComplete }: Props) => {
             <button
               key={en}
               type="button"
-              disabled={isMatched}
-              onClick={() => setSelectedEn(en)}
+              disabled={Boolean(wrongFlash) || isMatched}
+              onClick={() => choose(selectedLv, en)}
               className={cellClass(en, "en")}
             >
               {en}

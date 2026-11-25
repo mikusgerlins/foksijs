@@ -8,6 +8,7 @@ type Props = {
   correctAnswer: string;
   locked: boolean;
   big?: boolean;
+  lang?: "en" | "lv";
 };
 
 export const ChoiceGrid = ({
@@ -17,9 +18,10 @@ export const ChoiceGrid = ({
   correctAnswer,
   locked,
   big,
+  lang,
 }: Props) => {
   return (
-    <div className={cn("grid gap-3", options.length > 4 ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
+    <div lang={lang} className={cn("grid gap-3", options.length > 4 ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
       {options.map((opt) => {
         const isSelected = selected === opt;
         const isCorrect = opt === correctAnswer;

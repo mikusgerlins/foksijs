@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Heart, Volume2, Star, Check, X } from "lucide-react";
+import { ArrowLeft, AudioLines, Heart, Volume2, Star, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { findUnit } from "@/data/lessons";
-import { generateExercises, normalizeAnswer, type Exercise } from "@/lib/exercises";
+import { findUnit, type Unit, type Word } from "@/data/lessons";
+import { generateExercises, normalizeAnswer } from "@/lib/exercises";
 import { speak } from "@/lib/speak";
 import { useProgress } from "@/hooks/useProgress";
 import { ChoiceGrid } from "@/components/exercises/ChoiceGrid";
 import { PictureChoice } from "@/components/exercises/PictureChoice";
 import { Matching } from "@/components/exercises/Matching";
+import { ListeningPrompt } from "@/components/exercises/ListeningPrompt";
 import { Mascot } from "@/components/Mascot";
 import { Confetti } from "@/components/Confetti";
 import { cn } from "@/lib/utils";
@@ -21,56 +22,46 @@ const ENCOURAGE_CORRECT = ["Lieliski!", "Tu to vari!", "Super!", "Brīnišķīgi
 
 const Lesson = () => {
   const { unitId } = useParams<{ unitId: string }>();
-  const navigate = useNavigate();
   const unit = unitId ? findUnit(unitId) : undefined;
+  if (!unit) return (
+    <div className="container py-12 text-center">
+      <h1 className="text-2xl font-extrabold mb-4">Nodarbība nav atrasta</h1>
+      <Button asChild><Link to="/macibas">Atpakaļ uz mācībām</Link></Button>
+    </div>
+  );
+  return <UnitLesson key={unit.id} unit={unit} />;
+};
 
-  const { addXp, touchStreak, recordCorrect, recordMistake, completeUnit } = useProgress();
+const UnitLesson = ({ unit }: { unit: Unit }) => {
+  const navigate = useNavigate();
+  const { addXp, recordCorrect, recordMistake, completeUnit } = useProgress();
 
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState(() => generateExercises(unit));
   const [step, setStep] = useState(0);
   const [hearts, setHearts] = useState(MAX_HEARTS);
   const [mistakes, setMistakes] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
-  const [selectedWord, setSelectedWord] = useState<{ en: string; lv: string; emoji: string } | null>(null);
+  const [selectedWord, setSelectedWord] = useState<Word | null>(null);
   const [typedAnswer, setTypedAnswer] = useState("");
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    if (unit) setExercises(generateExercises(unit));
-  }, [unit]);
+  const [earnedXp, setEarnedXp] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [encouragement, setEncouragement] = useState(ENCOURAGE_CORRECT[0]);
 
   const ex = exercises[step];
-
-  // auto-play listening exercises
-  useEffect(() => {
-    if (ex?.type === "listening") {
-      const t = setTimeout(() => speak(ex.word.en), 300);
-      return () => clearTimeout(t);
-    }
-  }, [ex]);
+  const listening = ex.type === "listening" || ex.type === "listening-picture" || ex.type === "listening-meaning";
 
   const totalSteps = exercises.length;
   const progressPct = totalSteps ? ((step) / totalSteps) * 100 : 0;
-
-  const encouragement = useMemo(
-    () => ENCOURAGE_CORRECT[Math.floor(Math.random() * ENCOURAGE_CORRECT.length)],
-    [step],
-  );
-
-  if (!unit) {
-    return (
-      <div className="container py-12 text-center">
-        <h1 className="text-2xl font-extrabold mb-4">Nodarbība nav atrasta</h1>
-        <Button asChild><Link to="/macibas">Atpakaļ uz mācībām</Link></Button>
-      </div>
-    );
-  }
 
   const handleAnswer = (correct: boolean, wordEn: string) => {
     setFeedback(correct ? "correct" : "wrong");
     if (correct) {
       addXp(10);
+      setEarnedXp(value => value + 10);
+      setEncouragement(ENCOURAGE_CORRECT[Math.floor(Math.random() * ENCOURAGE_CORRECT.length)]);
       recordCorrect(wordEn);
     } else {
       setHearts((h) => Math.max(0, h - 1));
@@ -79,27 +70,30 @@ const Lesson = () => {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    if (saving) return;
+    if (step + 1 >= exercises.length) {
+      setSaving(true);
+      const saved = await completeUnit(unit.id, mistakes);
+      setSaving(false);
+      setSaveFailed(!saved);
+      if (saved) setDone(true);
+      return;
+    }
     setSelected(null);
     setSelectedWord(null);
     setTypedAnswer("");
     setFeedback(null);
 
-    if (step + 1 >= exercises.length) {
-      // finish lesson
-      addXp(50);
-      touchStreak();
-      completeUnit(unit.id, mistakes);
-      setDone(true);
-    } else {
-      setStep((s) => s + 1);
-    }
+    setStep((s) => s + 1);
   };
 
   const restartLesson = () => {
     setStep(0);
     setHearts(MAX_HEARTS);
     setMistakes(0);
+    setEarnedXp(0);
+    setSaveFailed(false);
     setSelected(null);
     setSelectedWord(null);
     setTypedAnswer("");
@@ -130,8 +124,7 @@ const Lesson = () => {
 
   if (done) {
     const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
-    const correctAnswers = exercises.length - mistakes;
-    const xpEarned = Math.max(0, correctAnswers * 10) + 50;
+    const xpEarned = earnedXp + 50;
     return (
       <div className="container py-12 max-w-lg text-center animate-fade-in relative">
         <Confetti />
@@ -195,6 +188,7 @@ const Lesson = () => {
       case "listening":
         return (
           <ChoiceGrid
+            lang="en"
             options={ex.options}
             onSelect={(o) => setSelected(o)}
             selected={selected}
@@ -203,6 +197,7 @@ const Lesson = () => {
           />
         );
       case "translation":
+      case "listening-meaning":
         return (
           <ChoiceGrid
             options={ex.options}
@@ -213,11 +208,12 @@ const Lesson = () => {
           />
         );
       case "picture":
+      case "listening-picture":
         return (
           <PictureChoice
             options={ex.options}
             onSelect={(w) => setSelectedWord(w)}
-            selected={selectedWord as never}
+            selected={selectedWord}
             correct={ex.word}
             locked={feedback !== null}
           />
@@ -252,6 +248,7 @@ const Lesson = () => {
             pairs={ex.pairs}
             onComplete={(m) => {
               addXp(10 * ex.pairs.length);
+              setEarnedXp(value => value + 10 * ex.pairs.length);
               setMistakes((prev) => prev + m);
               if (m > 0) setHearts((h) => Math.max(0, h - Math.min(m, 1)));
               ex.pairs.forEach((p) => recordCorrect(p.en));
@@ -268,8 +265,10 @@ const Lesson = () => {
       case "multiple-choice":
       case "listening":
       case "translation":
+      case "listening-meaning":
         return selected !== null;
       case "picture":
+      case "listening-picture":
         return selectedWord !== null;
       case "typing":
         return typedAnswer.trim().length > 0;
@@ -289,9 +288,11 @@ const Lesson = () => {
         handleAnswer(selected === ex.word.en, ex.word.en);
         break;
       case "translation":
+      case "listening-meaning":
         handleAnswer(selected === ex.word.lv, ex.word.en);
         break;
       case "picture":
+      case "listening-picture":
         handleAnswer(selectedWord?.en === ex.word.en, ex.word.en);
         break;
       case "typing":
@@ -336,23 +337,13 @@ const Lesson = () => {
         )}
       >
         <div className="flex items-start gap-3 mb-6">
-          <span className="text-3xl">{unit.emoji}</span>
+          {listening ? <AudioLines aria-hidden="true" className="h-8 w-8 shrink-0 text-orange-800" /> :
+            <span aria-hidden="true" className="text-3xl">{unit.emoji}</span>}
           <h2 className="text-xl sm:text-2xl font-extrabold leading-snug">{ex.prompt}</h2>
         </div>
 
-        {ex.type === "listening" && (
-          <div className="flex justify-center mb-6">
-            <Button
-              type="button"
-              size="lg"
-              variant="secondary"
-              onClick={() => speak(ex.word.en)}
-              className="h-24 w-24 rounded-full shadow-soft"
-              aria-label="Atskaņot vēlreiz"
-            >
-              <Volume2 className="!h-10 !w-10" />
-            </Button>
-          </div>
+        {listening && (
+          <ListeningPrompt round={ex} unitId={unit.id} answered={feedback !== null} />
         )}
 
         {ex.type === "translation" && (
@@ -414,7 +405,7 @@ const Lesson = () => {
               {ex.type !== "matching" && "word" in ex && (
                 <div className="text-sm text-muted-foreground">
                   Pareizā atbilde: <span className="font-bold text-foreground">
-                    {ex.type === "translation" ? ex.word.lv : ex.word.en}
+                    {ex.type === "translation" || ex.type === "listening-meaning" || ex.type === "listening-picture" ? ex.word.lv : ex.word.en}
                   </span>
                 </div>
               )}
@@ -422,9 +413,10 @@ const Lesson = () => {
           </div>
         )}
 
+        {saveFailed && <p role="alert" className="mb-2">Neizdevās saglabāt progresu. Mēģini vēlreiz.</p>}
         <Button
           size="lg"
-          disabled={!canCheck}
+          disabled={!canCheck || saving}
           onClick={onCheck}
           className={cn(
             "w-full h-14 rounded-2xl text-lg font-extrabold btn-chunky",

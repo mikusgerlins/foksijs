@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}", "cafe/**/*.{wav,jpg}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}", "cafe/**/*.{wav,jpg}", "listening/**/*.mp3"],
         navigateFallback: "index.html",
       },
       manifest: {
