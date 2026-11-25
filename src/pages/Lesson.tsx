@@ -77,7 +77,10 @@ const UnitLesson = ({ unit }: { unit: Unit }) => {
       const saved = await completeUnit(unit.id, mistakes);
       setSaving(false);
       setSaveFailed(!saved);
-      if (saved) setDone(true);
+      if (saved) {
+        setDone(true);
+        window.scrollTo(0, 0);
+      }
       return;
     }
     setSelected(null);
@@ -86,10 +89,12 @@ const UnitLesson = ({ unit }: { unit: Unit }) => {
     setFeedback(null);
 
     setStep((s) => s + 1);
+    window.scrollTo(0, 0);
   };
 
   const restartLesson = () => {
     setStep(0);
+    window.scrollTo(0, 0);
     setHearts(MAX_HEARTS);
     setMistakes(0);
     setEarnedXp(0);
@@ -377,6 +382,7 @@ const UnitLesson = ({ unit }: { unit: Unit }) => {
       </Card>
 
       {/* Feedback / check button */}
+      <div className="sticky bottom-0 z-20 -mx-4 bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div
         className={cn(
           "rounded-3xl p-4 sm:p-5 transition-all",
@@ -426,6 +432,7 @@ const UnitLesson = ({ unit }: { unit: Unit }) => {
         >
           {feedback ? "Turpināt" : "Pārbaudīt"}
         </Button>
+      </div>
       </div>
     </div>
   );

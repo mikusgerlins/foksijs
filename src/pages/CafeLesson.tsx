@@ -261,10 +261,12 @@ export default function CafeLesson() {
           )}
           {step !== 0 && <SpeakingPractice media={media} advance={step === 1 ? () => goTo(2) : complete} />}
           {(step !== 0 || progress.cafeWaterChosen) && (
-            <Button type="button" className={cn(mainButton, "w-full")}
-              onClick={step === 2 ? complete : () => goTo(step === 0 ? 1 : 2)}>
-              {step === 2 ? "Pabeigt" : "Turpināt"} <ArrowRight aria-hidden="true" />
-            </Button>
+            <div className="sticky bottom-0 z-20 -mx-4 bg-background px-4 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <Button type="button" className={cn(mainButton, "w-full")}
+                onClick={step === 2 ? complete : () => goTo(step === 0 ? 1 : 2)}>
+                {step === 2 ? "Pabeigt" : "Turpināt"} <ArrowRight aria-hidden="true" />
+              </Button>
+            </div>
           )}
         </>
       )}

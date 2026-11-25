@@ -91,6 +91,7 @@ const Review = () => {
   const restart = () => {
     setQueue(buildQueue(progress.learnedWords, progress.mistakes));
     setStep(0);
+    window.scrollTo(0, 0);
     setSelected(null);
     setFeedback(null);
     setCorrectCount(0);
@@ -161,6 +162,7 @@ const Review = () => {
       } else {
         setStep((s) => s + 1);
       }
+      window.scrollTo(0, 0);
       return;
     }
     if (!selected) return;
@@ -234,6 +236,7 @@ const Review = () => {
       </Card>
 
       {/* Feedback / button */}
+      <div className="sticky bottom-0 z-20 -mx-4 bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div
         className={cn(
           "rounded-3xl p-4 sm:p-5 transition-all",
@@ -292,6 +295,7 @@ const Review = () => {
         >
           {feedback ? "Turpināt" : "Pārbaudīt"}
         </Button>
+      </div>
       </div>
 
       {/* Tiny mascot helper at bottom */}
