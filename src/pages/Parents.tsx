@@ -32,6 +32,7 @@ type ChildSummary = {
   level: number;
   streak: number;
   completed: number;
+  cafeCompleted: boolean;
   learnedCount: number;
   learnedWords: { lv: string; en: string; emoji: string }[];
   needsPractice: { lv: string; en: string; emoji: string; count: number }[];
@@ -99,10 +100,15 @@ const ChildPanel = ({
         <h3 className="text-sm font-extrabold mb-2 uppercase text-muted-foreground tracking-wide">
           Pabeigtās nodarbības
         </h3>
-        {summary.completedUnits.length === 0 ? (
+        {summary.completed === 0 ? (
           <p className="text-sm text-muted-foreground">Vēl nav pabeigtu nodarbību.</p>
         ) : (
           <ul className="space-y-1.5">
+            {summary.cafeCompleted && (
+              <li className="flex items-center gap-2 rounded-xl bg-muted/50 p-2 text-sm font-bold">
+                <span aria-hidden="true">☕</span> Kafejnīcā
+              </li>
+            )}
             {summary.completedUnits.map((u) => (
               <li
                 key={u.id}
@@ -225,7 +231,7 @@ const ChildPanel = ({
 };
 
 const Parents = () => {
-  const { readProfileProgress } = useProgress();
+  const { readProfileProgress, resetProfileProgress } = useProgress();
   const { profiles } = useProfiles();
   const [unlocked, setUnlocked] = useState(false);
   // bump key to force re-read after a reset
@@ -254,7 +260,8 @@ const Parents = () => {
         xp: p.xp,
         level: Math.floor(p.xp / 200) + 1,
         streak: p.streak,
-        completed: completedUnits.length,
+        completed: completedUnits.length + Number(p.cafeCompletedCount > 0),
+        cafeCompleted: p.cafeCompletedCount > 0,
         learnedCount: p.learnedWords.length,
         learnedWords,
         needsPractice,
@@ -266,11 +273,7 @@ const Parents = () => {
   }, [profiles, refreshKey]);
 
   const resetProfile = (id: string) => {
-    try {
-      localStorage.removeItem(`rudis-progress-v2-${id}`);
-    } catch {
-      // ignore
-    }
+    resetProfileProgress(id);
     setRefreshKey((k) => k + 1);
   };
 

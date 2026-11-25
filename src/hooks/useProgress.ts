@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useProfiles } from "@/contexts/ProfileContext";
 
 export type UnitProgress = {
@@ -14,6 +14,10 @@ export type Progress = {
   units: Record<string, UnitProgress>;
   learnedWords: string[];
   mistakes: Record<string, number>;
+  cafeStep: 0 | 1 | 2 | null;
+  cafeWaterChosen: boolean;
+  cafeCompletedCount: number;
+  cafePracticeDays: string[];
 };
 
 const storageKey = (profileId: string) => `rudis-progress-v2-${profileId}`;
@@ -26,75 +30,110 @@ const defaultProgress: Progress = {
   units: {},
   learnedWords: [],
   mistakes: {},
+  cafeStep: null,
+  cafeWaterChosen: false,
+  cafeCompletedCount: 0,
+  cafePracticeDays: [],
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
-const daysBetween = (a: string, b: string) => {
-  const da = new Date(a).getTime();
-  const db = new Date(b).getTime();
-  return Math.round((db - da) / (1000 * 60 * 60 * 24));
-};
+const localDate = (date: Date) => [
+  date.getFullYear(),
+  String(date.getMonth() + 1).padStart(2, "0"),
+  String(date.getDate()).padStart(2, "0"),
+].join("-");
 
-const load = (profileId: string): Progress => {
+function creditDay(p: Progress, date: Date): Progress {
+  const today = localDate(date);
+  if (p.lastActive && p.lastActive >= today) return p;
+  const yesterday = new Date(date);
+  yesterday.setDate(date.getDate() - 1);
+  return {
+    ...p,
+    lastActive: today,
+    streak: p.lastActive === localDate(yesterday) ? p.streak + 1 : 1,
+  };
+}
+
+// Keep all mounted consumers on one snapshot, including the navigation bar.
+// Save synchronously so closing the app just after a tap preserves that step.
+const listeners = new Set<() => void>();
+const unsaved = new Map<string, string>();
+function subscribe(notify: () => void) {
+  listeners.add(notify);
+  window.addEventListener("storage", notify);
+  return () => {
+    listeners.delete(notify);
+    window.removeEventListener("storage", notify);
+  };
+}
+
+function snapshot(profileId: string | null): string | null {
+  if (!profileId) return null;
+  const key = storageKey(profileId);
+  if (unsaved.has(key)) return unsaved.get(key)!;
   try {
-    const raw = localStorage.getItem(storageKey(profileId));
-    if (raw) return { ...defaultProgress, ...JSON.parse(raw) };
-    // Migrate legacy single-user progress to first profile (kid-1)
-    if (profileId === "kid-1") {
-      const legacy = localStorage.getItem(LEGACY_KEY);
-      if (legacy) {
-        const parsed = { ...defaultProgress, ...JSON.parse(legacy) };
-        localStorage.setItem(storageKey(profileId), JSON.stringify(parsed));
-        return parsed;
-      }
-    }
-    return defaultProgress;
+    return localStorage.getItem(key) ?? (profileId === "kid-1" ? localStorage.getItem(LEGACY_KEY) : null);
+  } catch {
+    return null;
+  }
+}
+
+function decode(raw: string | null): Progress {
+  try {
+    return raw ? { ...defaultProgress, ...JSON.parse(raw) } : defaultProgress;
   } catch {
     return defaultProgress;
   }
-};
+}
 
 const save = (profileId: string, p: Progress) => {
+  const key = storageKey(profileId);
+  const raw = JSON.stringify(p);
   try {
-    localStorage.setItem(storageKey(profileId), JSON.stringify(p));
+    localStorage.setItem(key, raw);
+    unsaved.delete(key);
   } catch {
-    // ignore
+    unsaved.set(key, raw);
   }
+  listeners.forEach(notify => notify());
 };
 
 export function useProgress() {
   const { activeId } = useProfiles();
-  const [progress, setProgress] = useState<Progress>(() =>
-    activeId ? load(activeId) : defaultProgress,
-  );
-
-  // Reload progress when active profile changes
-  useEffect(() => {
-    if (activeId) setProgress(load(activeId));
-    else setProgress(defaultProgress);
-  }, [activeId]);
-
-  // Persist on change
-  useEffect(() => {
-    if (activeId) save(activeId, progress);
-  }, [activeId, progress]);
+  const raw = useSyncExternalStore(subscribe, () => snapshot(activeId));
+  const progress = useMemo(() => decode(raw), [raw]);
 
   const update = useCallback((fn: (p: Progress) => Progress) => {
-    setProgress((prev) => fn(prev));
-  }, []);
+    if (!activeId) return;
+    const previous = decode(snapshot(activeId));
+    const next = fn(previous);
+    if (next !== previous) save(activeId, next);
+  }, [activeId]);
 
   const touchStreak = useCallback(() => {
-    update((p) => {
-      const t = today();
-      if (p.lastActive === t) return p;
-      let streak = p.streak;
-      if (!p.lastActive) streak = 1;
-      else {
-        const diff = daysBetween(p.lastActive, t);
-        if (diff === 1) streak = p.streak + 1;
-        else if (diff > 1) streak = 1;
-      }
-      return { ...p, lastActive: t, streak };
+    update(p => creditDay(p, new Date()));
+  }, [update]);
+
+  const setCafeStep = useCallback((step: Progress["cafeStep"]) => {
+    update(p => ({ ...p, cafeStep: step, cafeWaterChosen: false }));
+  }, [update]);
+
+  const setCafeWaterChosen = useCallback(() => {
+    update(p => p.cafeStep === 0 ? { ...p, cafeWaterChosen: true } : p);
+  }, [update]);
+
+  const finishCafe = useCallback(() => {
+    update(p => {
+      if (p.cafeStep !== 2) return p;
+      const date = new Date();
+      const day = localDate(date);
+      return {
+        ...creditDay(p, date),
+        cafeStep: null,
+        cafeWaterChosen: false,
+        cafeCompletedCount: p.cafeCompletedCount + 1,
+        cafePracticeDays: p.cafePracticeDays.includes(day) ? p.cafePracticeDays : [...p.cafePracticeDays, day],
+      };
     });
   }, [update]);
 
@@ -134,20 +173,14 @@ export function useProgress() {
     });
   }, [update]);
 
+  const resetProfileProgress = useCallback((profileId: string) => save(profileId, defaultProgress), []);
   const reset = useCallback(() => {
-    setProgress(defaultProgress);
-    if (activeId) {
-      try {
-        localStorage.removeItem(storageKey(activeId));
-      } catch {
-        // ignore
-      }
-    }
-  }, [activeId]);
+    if (activeId) resetProfileProgress(activeId);
+  }, [activeId, resetProfileProgress]);
 
   // Read another profile's progress without switching (for parent dashboard)
   const readProfileProgress = useCallback((profileId: string): Progress => {
-    return load(profileId);
+    return decode(snapshot(profileId));
   }, []);
 
   const level = Math.floor(progress.xp / 200) + 1;
@@ -159,10 +192,14 @@ export function useProgress() {
     xpInLevel,
     addXp,
     touchStreak,
+    setCafeStep,
+    setCafeWaterChosen,
+    finishCafe,
     recordMistake,
     recordCorrect,
     completeUnit,
     reset,
     readProfileProgress,
+    resetProfileProgress,
   };
 }

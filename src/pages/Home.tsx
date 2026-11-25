@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import { Star, Trophy, Flame, CheckCircle2, Volume2, Repeat } from "lucide-react";
+import { Star, Trophy, Flame, CheckCircle2, Volume2, Repeat, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useProgress } from "@/hooks/useProgress";
 import { UNITS, allWords } from "@/data/lessons";
 import { speak } from "@/lib/speak";
-import { useMemo } from "react";
+import { useLayoutEffect, useMemo } from "react";
 import { MascotBubble } from "@/components/MascotBubble";
 
 const StatCard = ({
@@ -40,18 +40,23 @@ const StatCard = ({
 
 const Home = () => {
   const { progress, level } = useProgress();
+  useLayoutEffect(() => { window.scrollTo(0, 0); }, []);
 
   const nextUnit = useMemo(() => {
     return UNITS.find((u) => !progress.units[u.id]?.completed) ?? UNITS[0];
   }, [progress.units]);
 
-  const completedCount = Object.values(progress.units).filter((u) => u.completed).length;
-  const isReturning = progress.xp > 0;
+  const completedVocabulary = Object.values(progress.units).filter((u) => u.completed).length;
+  const cafeCompleted = progress.cafeCompletedCount > 0;
+  const cafeStarted = progress.cafeStep !== null;
+  const completedCount = completedVocabulary + Number(cafeCompleted);
+  const isReturning = progress.xp > 0 || cafeStarted || cafeCompleted;
 
   const welcomeMessage = (() => {
+    if (cafeStarted) return "Turpinām tur, kur apstājāmies!";
     if (!isReturning) return "Čau! Es esmu Foksijs. Mācīsimies angļu valodu kopā!";
     if (completedCount === 0) return `Sveiks! Tu jau nopelnīji ${progress.xp} XP. Turpinām!`;
-    if (completedCount === UNITS.length) return "Tu esi īsts angļu valodas zinātājs! 🌟";
+    if (completedVocabulary === UNITS.length) return "Tu esi īsts angļu valodas zinātājs! 🌟";
     return `${nextUnit.title} ir nākamais piedzīvojums!`;
   })();
 
@@ -63,6 +68,20 @@ const Home = () => {
 
   return (
     <div className="container py-6 sm:py-12 max-w-4xl">
+      <Link
+        to="/kafejnica"
+        className="group mb-6 grid grid-cols-[6.5rem_minmax(0,1fr)] items-stretch overflow-hidden rounded-3xl border-2 border-orange-200 bg-card text-foreground shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:grid-cols-[12rem_minmax(0,1fr)]"
+      >
+        <img className="h-full min-h-36 w-full object-cover" src={`${import.meta.env.BASE_URL}cafe/cafe.jpg`} alt="" />
+        <div className="flex flex-col items-start justify-center gap-1.5 px-4 py-3 sm:px-6">
+          <span className="text-sm font-bold text-muted-foreground">1. līmenis · Saruna</span>
+          <h2 className="text-2xl font-extrabold sm:text-3xl">Kafejnīcā</h2>
+          <span className="mt-1 inline-flex items-center gap-2 rounded-xl bg-orange-800 px-4 py-2 font-bold text-white group-hover:bg-orange-900">
+            <Play className="h-4 w-4" aria-hidden="true" />
+            {cafeStarted ? "Turpināt" : cafeCompleted ? "Spēlēt vēlreiz" : "Sākt"}
+          </span>
+        </div>
+      </Link>
       {/* Welcome hero with speech bubble */}
       <section className="grid sm:grid-cols-[auto_1fr] gap-6 items-center mb-8">
         <div className="flex justify-center sm:justify-start">
