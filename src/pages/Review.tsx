@@ -27,7 +27,7 @@ const shuffle = <T,>(arr: T[]): T[] => {
   return a;
 };
 
-/** Build a review queue of 8 rounds, prioritising mistake-prone words. */
+/** Build up to 8 rounds, prioritising mistake-prone words. */
 const buildQueue = (
   learned: string[],
   mistakes: Record<string, number>,
@@ -36,29 +36,27 @@ const buildQueue = (
   const learnedWords = all.filter((w) => learned.includes(w.en));
   if (learnedWords.length === 0) return [];
 
-  // weight: mistakes count + 1
   const weighted: Word[] = [];
   learnedWords.forEach((w) => {
     const weight = (mistakes[w.en] || 0) * 2 + 1;
     for (let i = 0; i < weight; i++) weighted.push(w);
   });
 
-  const target = Math.min(8, learnedWords.length * 2);
+  const learnedCount = new Set(learnedWords.map((w) => w.en)).size;
+  const target = learnedCount === 1 ? 1 : Math.min(8, learnedCount * 2);
   const picks: Word[] = [];
-  const seenInRow = new Set<string>();
   while (picks.length < target) {
-    const candidate = weighted[Math.floor(Math.random() * weighted.length)];
-    // avoid back-to-back duplicates
-    if (picks.length > 0 && picks[picks.length - 1].en === candidate.en) continue;
-    seenInRow.add(candidate.en);
-    picks.push(candidate);
+    const previous = picks[picks.length - 1];
+    const choices = previous ? weighted.filter((word) => word.en !== previous.en) : weighted;
+    picks.push(choices[Math.floor(Math.random() * choices.length)]);
   }
 
+  const englishOptions = [...new Set(all.map((word) => word.en))];
   return picks.map((word) => {
-    const distractors = shuffle(all.filter((w) => w.en !== word.en)).slice(0, 3);
+    const distractors = shuffle(englishOptions.filter((en) => en !== word.en)).slice(0, 3);
     return {
       word,
-      options: shuffle([word.en, ...distractors.map((d) => d.en)]),
+      options: shuffle([word.en, ...distractors]),
       prompt: `Kā angliski "${word.lv}"?`,
     };
   });
