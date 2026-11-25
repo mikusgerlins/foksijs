@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useProfiles } from "@/contexts/ProfileContext";
+import { androidProgress } from "@/lib/androidProgress";
 
 export type UnitProgress = {
   stars: number;
@@ -55,9 +56,9 @@ function creditDay(p: Progress, date: Date): Progress {
 }
 
 // Keep all mounted consumers on one snapshot, including the navigation bar.
-// Save synchronously so closing the app just after a tap preserves that step.
 const listeners = new Set<() => void>();
 const unsaved = new Map<string, string>();
+const pending = new Map<string, { raw: string }>();
 function subscribe(notify: () => void) {
   listeners.add(notify);
   window.addEventListener("storage", notify);
@@ -86,9 +87,8 @@ function decode(raw: string | null): Progress {
   }
 }
 
-const save = (profileId: string, p: Progress) => {
+const publish = (profileId: string, raw: string) => {
   const key = storageKey(profileId);
-  const raw = JSON.stringify(p);
   try {
     localStorage.setItem(key, raw);
     unsaved.delete(key);
@@ -98,16 +98,42 @@ const save = (profileId: string, p: Progress) => {
   listeners.forEach(notify => notify());
 };
 
+export async function restoreAndroidProgress() {
+  if (!androidProgress) return;
+  const { values } = await androidProgress.getAll();
+  Object.entries(values).forEach(([id, raw]) => publish(id, raw));
+}
+
+function save(profileId: string, p: Progress): Promise<boolean> {
+  const raw = JSON.stringify(p);
+  if (!androidProgress) {
+    publish(profileId, raw);
+    return Promise.resolve(true);
+  }
+  // Several vocabulary updates may occur in one event. Each builds on the
+  // latest queued value. Expose the new screen only after Android commits it.
+  const write = { raw };
+  pending.set(profileId, write);
+  return androidProgress.set({ profileId, value: raw }).then(() => {
+    if (pending.get(profileId) === write) pending.delete(profileId);
+    publish(profileId, raw);
+    return true;
+  }, () => {
+    if (pending.get(profileId) === write) pending.delete(profileId);
+    return false;
+  });
+}
+
 export function useProgress() {
   const { activeId } = useProfiles();
   const raw = useSyncExternalStore(subscribe, () => snapshot(activeId));
   const progress = useMemo(() => decode(raw), [raw]);
 
   const update = useCallback((fn: (p: Progress) => Progress) => {
-    if (!activeId) return;
-    const previous = decode(snapshot(activeId));
+    if (!activeId) return Promise.resolve(false);
+    const previous = decode(pending.get(activeId)?.raw ?? snapshot(activeId));
     const next = fn(previous);
-    if (next !== previous) save(activeId, next);
+    return next !== previous ? save(activeId, next) : Promise.resolve(true);
   }, [activeId]);
 
   const touchStreak = useCallback(() => {
@@ -115,15 +141,15 @@ export function useProgress() {
   }, [update]);
 
   const setCafeStep = useCallback((step: Progress["cafeStep"]) => {
-    update(p => ({ ...p, cafeStep: step, cafeWaterChosen: false }));
+    return update(p => ({ ...p, cafeStep: step, cafeWaterChosen: false }));
   }, [update]);
 
   const setCafeWaterChosen = useCallback(() => {
-    update(p => p.cafeStep === 0 ? { ...p, cafeWaterChosen: true } : p);
+    return update(p => p.cafeStep === 0 ? { ...p, cafeWaterChosen: true } : p);
   }, [update]);
 
   const finishCafe = useCallback(() => {
-    update(p => {
+    return update(p => {
       if (p.cafeStep !== 2) return p;
       const date = new Date();
       const day = localDate(date);

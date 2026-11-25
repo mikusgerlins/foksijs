@@ -26,6 +26,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void load() {
+        registerPlugin(ProfileProgress.class);
         super.load();
         bridge.getWebView().setWebChromeClient(new BridgeWebChromeClient(bridge) {
             @Override

@@ -66,13 +66,19 @@ export default function CafeLesson() {
   const [mistake, setMistake] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [canReplay, setCanReplay] = useState(false);
-  const finishLock = useRef(false);
+  const saving = useRef(false);
+  const mounted = useRef(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const media = useCafeMedia();
   const { playPrompt, reset } = media;
   const firstPrompt = useRef(step === null ? [lesson.welcome] : prompts[step]);
 
-  useEffect(() => { playPrompt(...firstPrompt.current); }, [playPrompt]);
+  useEffect(() => {
+    mounted.current = true;
+    playPrompt(...firstPrompt.current);
+    return () => { mounted.current = false; };
+  }, [playPrompt]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -85,30 +91,38 @@ export default function CafeLesson() {
     return () => window.clearTimeout(timer);
   }, [finished]);
 
-  const goTo = (next: Step) => {
+  const checkpoint = async (write: () => Promise<boolean>) => {
+    if (saving.current) return false;
+    saving.current = true;
+    setSaveFailed(false);
+    const saved = await write();
+    saving.current = false;
+    if (!mounted.current) return false;
+    setSaveFailed(!saved);
+    return saved;
+  };
+
+  const goTo = async (next: Step) => {
+    if (!(await checkpoint(() => setCafeStep(next)))) return;
     reset();
     setFinished(false);
     setCanReplay(false);
     setMistake(null);
     setRevealed(false);
-    finishLock.current = false;
-    setCafeStep(next);
     playPrompt(...prompts[next]);
   };
 
-  const complete = () => {
-    if (finishLock.current) return;
-    finishLock.current = true;
+  const complete = async () => {
+    if (!(await checkpoint(finishCafe))) return;
     reset();
-    finishCafe();
     setFinished(true);
     playPrompt(lesson.finish);
   };
 
-  const choose = (id: string) => {
-    if (progress.cafeWaterChosen) return;
+  const choose = async (id: string) => {
+    if (saving.current || progress.cafeWaterChosen) return;
     if (id === lesson.listen.target) {
-      setCafeWaterChosen();
+      if (!(await checkpoint(setCafeWaterChosen))) return;
       setMistake(null);
       playPrompt(lesson.listen.correct);
     } else {
@@ -255,6 +269,7 @@ export default function CafeLesson() {
         </>
       )}
       {media.audioFailed && <p role="status" className="text-sm font-semibold">Lai dzirdētu, pieskaries klausīšanās pogai.</p>}
+      {saveFailed && <p role="alert" className="text-sm font-semibold">Neizdevās saglabāt progresu. Mēģini vēlreiz.</p>}
     </div>
   );
 }

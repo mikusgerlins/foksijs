@@ -30,7 +30,7 @@ describe("café progress", () => {
     expect(result.current.progress).toMatchObject({ cafeStep: 0, cafeWaterChosen: true });
     act(() => result.current.selectProfile("kid-2"));
     expect(result.current.progress.cafeStep).toBeNull();
-    act(() => result.current.setCafeStep(1));
+    act(() => { void result.current.setCafeStep(1); });
     act(() => result.current.selectProfile("kid-1"));
     expect(result.current.progress).toMatchObject({ cafeStep: 0, cafeWaterChosen: true });
   });
@@ -77,7 +77,7 @@ describe("café progress", () => {
     expect(JSON.parse(localStorage.getItem(key)!)).toMatchObject({
       xp: 80, learnedWords: ["milk"], units: { drinks: { completed: true } }, cafeCompletedCount: 1,
     });
-    act(() => screen.result.current.resetProfileProgress("kid-1"));
+    act(() => { void screen.result.current.resetProfileProgress("kid-1"); });
     expect(nav.result.current.progress).toMatchObject({ xp: 0, streak: 0, cafeStep: null, cafeCompletedCount: 0 });
   });
 });

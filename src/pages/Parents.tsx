@@ -272,8 +272,8 @@ const Parents = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profiles, refreshKey]);
 
-  const resetProfile = (id: string) => {
-    resetProfileProgress(id);
+  const resetProfile = async (id: string) => {
+    await resetProfileProgress(id);
     setRefreshKey((k) => k + 1);
   };
 
