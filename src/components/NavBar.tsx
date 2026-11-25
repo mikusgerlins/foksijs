@@ -31,11 +31,11 @@ export const NavBar = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between gap-2 sm:gap-4">
+      <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between gap-1 px-2 sm:gap-4 sm:px-6">
         {/* Profile switcher (replaces logo) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 hover:bg-muted transition-colors shrink-0">
+            <button aria-label="Izvēlēties profilu" className="flex min-h-11 items-center gap-2 rounded-full px-1 py-1 hover:bg-muted transition-colors shrink-0 sm:pr-3">
               <span className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-2xl shadow-card">
                 {activeProfile?.avatar ?? "🦊"}
               </span>
@@ -71,23 +71,23 @@ export const NavBar = () => {
         </DropdownMenu>
 
         {/* Quick stats */}
-        <div className="flex items-center gap-1.5 sm:gap-2 text-sm font-extrabold">
+        <div className="flex items-center gap-1 sm:gap-2 text-sm font-extrabold">
           <div
-            className="flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-1"
+            className="flex items-center gap-1 rounded-full bg-primary/15 text-primary px-1.5 py-1 sm:px-2.5"
             title="XP punkti"
           >
             <Star className="h-4 w-4 fill-primary" />
             <span>{progress.xp}</span>
           </div>
           <div
-            className="flex items-center gap-1 rounded-full bg-accent/30 text-accent-foreground px-2.5 py-1"
+            className="hidden min-[420px]:flex items-center gap-1 rounded-full bg-accent/30 text-accent-foreground px-2.5 py-1"
             title="Līmenis"
           >
             <span className="text-xs">Lv</span>
             <span>{level}</span>
           </div>
           <div
-            className="flex items-center gap-1 rounded-full bg-secondary/20 text-secondary px-2.5 py-1"
+            className="flex items-center gap-1 rounded-full bg-secondary/20 text-secondary px-1.5 py-1 sm:px-2.5"
             title="Dienu sērija"
           >
             <Flame className="h-4 w-4 fill-secondary" />
@@ -103,7 +103,7 @@ export const NavBar = () => {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-bold transition-colors",
+                  "flex min-h-11 min-w-10 items-center justify-center gap-1.5 rounded-full px-2 sm:px-3 py-2 text-xs sm:text-sm font-bold transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-soft"
                     : "text-foreground hover:bg-muted",

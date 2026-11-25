@@ -1,0 +1,40 @@
+{
+  "id": "cafe_01",
+  "level": 1,
+  "title": "Kafejnīcā",
+  "summary": "Pasūti dzērienu angliski kopā ar lapsu!",
+  "cover": "cafe",
+  "host": "host",
+  "welcome": "lv_welcome",
+  "listen": {
+    "instruction": "Klausies un izvēlies dzērienu!",
+    "prompt": ["lv_listen", "en_water"],
+    "choices": [
+      {"id": "milk", "label": "Piens", "picture": "milk"},
+      {"id": "water", "label": "Ūdens", "picture": "water"},
+      {"id": "apple", "label": "Ābolu sula", "picture": "apple"}
+    ],
+    "target": "water",
+    "retryText": "Paklausies vēlreiz un izvēlies dzērienu.",
+    "correctText": "Jā, ūdeni!",
+    "retry": "lv_retry",
+    "correct": "lv_correct"
+  },
+  "repeat": {
+    "instruction": "Tagad pamēģini pateikt!",
+    "model": "Can I have some water, please?",
+    "prompt": ["lv_repeat", "en_water_full"]
+  },
+  "order": {
+    "instruction": "Pasūti dzērienu!",
+    "question": "What would you like?",
+    "prompt": ["lv_order", "en_question"],
+    "picture": "apple_order",
+    "pictureDescription": "Ābolu sulas krūka, glāze un āboli",
+    "models": [
+      {"text": "Apple juice, please.", "clip": "en_juice_short"},
+      {"text": "Can I have some apple juice, please?", "clip": "en_juice_full"}
+    ]
+  },
+  "finish": "lv_done"
+}

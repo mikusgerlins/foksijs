@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "./components/Layout";
 import { useProfiles } from "./contexts/ProfileContext";
 import Home from "./pages/Home";
+import CafeLesson from "./pages/CafeLesson";
 import LessonMap from "./pages/LessonMap";
 import Lesson from "./pages/Lesson";
 import Parents from "./pages/Parents";
@@ -38,6 +39,7 @@ const App = () => (
             }
           >
             <Route path="/" element={<Home />} />
+            <Route path="/kafejnica" element={<CafeLesson />} />
             <Route path="/macibas" element={<LessonMap />} />
             <Route path="/macibas/:unitId" element={<Lesson />} />
             <Route path="/atkartot" element={<Review />} />
