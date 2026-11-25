@@ -80,4 +80,16 @@ describe("café progress", () => {
     act(() => { void screen.result.current.resetProfileProgress("kid-1"); });
     expect(nav.result.current.progress).toMatchObject({ xp: 0, streak: 0, cafeStep: null, cafeCompletedCount: 0 });
   });
+
+  it("saves the vocabulary bonus, stars and shared practice day together", async () => {
+    const { result } = renderProgress();
+    await act(async () => { await result.current.completeUnit("greetings", 1); });
+    expect(result.current.progress).toMatchObject({
+      xp: 50, streak: 1, units: { greetings: { stars: 2, bestMistakes: 1, completed: true } },
+    });
+    await act(async () => { await result.current.completeUnit("greetings", 0); });
+    expect(result.current.progress).toMatchObject({
+      xp: 100, streak: 1, units: { greetings: { stars: 3, bestMistakes: 0 } },
+    });
+  });
 });

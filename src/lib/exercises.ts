@@ -1,48 +1,24 @@
-import { Unit, Word, allWords } from "@/data/lessons";
+import { allWords, type Unit, type Word } from "@/data/lessons";
+import { listeningScenes } from "@/data/listening-scenes";
 
-export type ExerciseType =
-  | "multiple-choice"
-  | "translation"
-  | "listening"
-  | "typing"
-  | "picture"
-  | "matching";
+type ChoiceRound<T extends string, Option> = {
+  type: T;
+  prompt: string;
+  word: Word;
+  options: Option[];
+};
 
 export type Exercise =
-  | {
-      type: "multiple-choice";
-      prompt: string; // Latvian instruction
-      word: Word;
-      options: string[]; // English options
-    }
-  | {
-      type: "translation";
-      prompt: string;
-      word: Word;
-      options: string[]; // Latvian options
-    }
-  | {
-      type: "listening";
-      prompt: string;
-      word: Word;
-      options: string[]; // English options
-    }
-  | {
-      type: "typing";
-      prompt: string;
-      word: Word;
-    }
-  | {
-      type: "picture";
-      prompt: string;
-      word: Word;
-      options: Word[]; // emoji choices
-    }
-  | {
-      type: "matching";
-      prompt: string;
-      pairs: Word[]; // 4 pairs to match
-    };
+  | ChoiceRound<"multiple-choice", string>
+  | ChoiceRound<"translation", string>
+  | ChoiceRound<"listening", string>
+  | ChoiceRound<"listening-picture", Word>
+  | ChoiceRound<"listening-meaning", string>
+  | ChoiceRound<"picture", Word>
+  | { type: "typing"; prompt: string; word: Word }
+  | { type: "matching"; prompt: string; pairs: Word[] };
+
+export type ExerciseType = Exercise["type"];
 
 const shuffle = <T,>(arr: T[]): T[] => {
   const a = [...arr];
@@ -53,75 +29,86 @@ const shuffle = <T,>(arr: T[]): T[] => {
   return a;
 };
 
-const pickDistractors = (correct: Word, pool: Word[], count: number): Word[] => {
-  const candidates = pool.filter((w) => w.en !== correct.en);
-  return shuffle(candidates).slice(0, count);
-};
+// Both greetings use an open hand, and both nature words depict a single tree.
+const similarPictures: Record<string, string> = { "🖐️": "👋", "🌲": "🌳" };
+const pictureSymbol = (word: Word) => similarPictures[word.emoji] ?? word.emoji;
+
+function choicesFor(target: Word, pool: Word[], pictures = false): Word[] {
+  const choices = [target];
+  for (const candidate of shuffle(pool)) {
+    const alreadyShown = choices.some(choice =>
+      choice.en === candidate.en || choice.lv === candidate.lv ||
+      (pictures && pictureSymbol(choice) === pictureSymbol(candidate)),
+    );
+    if (!alreadyShown) choices.push(candidate);
+    if (choices.length === 4) break;
+  }
+  return shuffle(choices);
+}
 
 export function generateExercises(unit: Unit): Exercise[] {
   const words = unit.words;
-  const pool = [...words, ...allWords()]; // distractors can come from anywhere
-  const types: ExerciseType[] = [
-    "multiple-choice",
-    "listening",
-    "translation",
-    "picture",
-    "typing",
+  const vocabularyPool = [...words, ...allWords()];
+  const shuffledWords = shuffle(words);
+  const sceneTarget = listeningScenes[unit.id]?.target;
+  const pictureTarget = words.find(word => word.en === sceneTarget) ?? shuffledWords[0];
+  const [heardWord = pictureTarget, meaningWord = heardWord] = shuffledWords.filter(word => word.en !== pictureTarget.en);
+  // Retain the original vocabulary targets between the three listening rounds.
+  const first = words[0];
+  const translate = words[2 % words.length];
+  const picture = words[3 % words.length];
+  const typeWord = words[4 % words.length];
+
+  return [
+    {
+      type: "multiple-choice",
+      prompt: `Kā angliski "${first.lv}"?`,
+      word: first,
+      options: choicesFor(first, vocabularyPool).map(w => w.en),
+    },
+    {
+      type: "listening",
+      prompt: "Klausies un izvēlies angļu vārdu!",
+      word: heardWord,
+      options: choicesFor(heardWord, words).map(w => w.en),
+    },
+    {
+      type: "translation",
+      prompt: `Ko nozīmē "${translate.en}"?`,
+      word: translate,
+      options: choicesFor(translate, vocabularyPool).map(w => w.lv),
+    },
+    {
+      type: "listening-picture",
+      prompt: sceneTarget === pictureTarget.en
+        ? "Noklausies teikumu un izvēlies attēlu!"
+        : "Klausies un izvēlies attēlu!",
+      word: pictureTarget,
+      options: choicesFor(pictureTarget, words, true),
+    },
+    {
+      type: "picture",
+      prompt: `Atrodi "${picture.en}"`,
+      word: picture,
+      options: choicesFor(picture, vocabularyPool, true),
+    },
+    {
+      type: "typing",
+      prompt: `Uzraksti angliski "${typeWord.lv}"`,
+      word: typeWord,
+    },
+    {
+      type: "listening-meaning",
+      prompt: "Klausies un izvēlies, ko šis vārds nozīmē!",
+      word: meaningWord,
+      options: choicesFor(meaningWord, words).map(w => w.lv),
+    },
+    {
+      type: "matching",
+      prompt: "Savieno latviešu vārdu ar angļu vārdu",
+      pairs: shuffle(words).slice(0, 4),
+    },
   ];
-
-  const exercises: Exercise[] = [];
-
-  // one of each type, cycling through the unit's words
-  types.forEach((type, i) => {
-    const word = words[i % words.length];
-    const distractors = pickDistractors(word, pool, 3);
-
-    if (type === "multiple-choice") {
-      exercises.push({
-        type,
-        prompt: `Kā angliski "${word.lv}"?`,
-        word,
-        options: shuffle([word.en, ...distractors.map((d) => d.en)]),
-      });
-    } else if (type === "translation") {
-      exercises.push({
-        type,
-        prompt: `Ko nozīmē "${word.en}"?`,
-        word,
-        options: shuffle([word.lv, ...distractors.map((d) => d.lv)]),
-      });
-    } else if (type === "listening") {
-      exercises.push({
-        type,
-        prompt: "Klausies un izvēlies pareizo vārdu",
-        word,
-        options: shuffle([word.en, ...distractors.map((d) => d.en)]),
-      });
-    } else if (type === "picture") {
-      exercises.push({
-        type,
-        prompt: `Atrodi "${word.en}"`,
-        word,
-        options: shuffle([word, ...distractors]),
-      });
-    } else if (type === "typing") {
-      exercises.push({
-        type,
-        prompt: `Uzraksti angliski "${word.lv}"`,
-        word,
-      });
-    }
-  });
-
-  // matching exercise (always last) using up to 4 unit words
-  const matchPairs = shuffle(words).slice(0, Math.min(4, words.length));
-  exercises.push({
-    type: "matching",
-    prompt: "Savieno latviešu vārdu ar angļu vārdu",
-    pairs: matchPairs,
-  });
-
-  return exercises;
 }
 
 export const normalizeAnswer = (s: string) =>

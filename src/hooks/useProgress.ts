@@ -184,13 +184,14 @@ export function useProgress() {
   }, [update]);
 
   const completeUnit = useCallback((unitId: string, mistakes: number) => {
-    update((p) => {
+    return update((p) => {
       const stars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
       const prev = p.units[unitId];
       const bestMistakes = prev ? Math.min(prev.bestMistakes, mistakes) : mistakes;
       const bestStars = Math.max(prev?.stars || 0, stars);
       return {
-        ...p,
+        ...creditDay(p, new Date()),
+        xp: p.xp + 50,
         units: {
           ...p.units,
           [unitId]: { stars: bestStars, completed: true, bestMistakes },

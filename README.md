@@ -6,6 +6,8 @@ After choosing a child profile, open **Kafejnīcā** from the home screen. Liste
 
 Café checkpoints, completion history and practice streaks are stored per profile on the device. The web and Android installations each have their own local progress. The café pictures and audio ship with the Android app. The web version caches them after its first successful service-worker installation.
 
+Each of the 43 units on **Mācības** has eight exercises. In three of them the child listens to English and chooses a written word, matches a sentence to a picture, or chooses a Latvian meaning. The replay button repeats the English recording after the spoken direction. The Android APK bundles the recordings, and the web app caches them with the lesson. The scene scripts are in `src/data/listening-scenes.ts`. [Listening voice credits](public/listening/VOICE-CREDITS.md)
+
 ## Run the web app
 
 Use Node.js 24 and npm.
